@@ -58,6 +58,7 @@ Lemnos.Game.prototype = {
     }
     else {
       //reload old map
+      this.worldMapCells[this.worldXY.toString()] = this.curMap;
       this.curMap = this.worldMapCells[targetWorldXY.toString()];
     }
 
