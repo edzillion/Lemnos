@@ -1,9 +1,9 @@
 Lemnos.Game = function() {
   // blank all state vars
   window.clearSubscribers();
-  this.fovMapCells = [];
-  this.seenMapCells = [];
-  this.map = {};
+  this.worldMapCells = [];
+  this.worldXY = new XY(0,0);
+  this.curMap = null;
   this.engine = null;
   this.player = null;
   this._scheduler = null;
@@ -17,17 +17,31 @@ Lemnos.Game.prototype = {
     this._scheduler = new ROT.Scheduler.Speed();
     this.engine = new ROT.Engine(this._scheduler);
 
-    this.enterRoom();
+    //test world map
+/*    this.worldMapCells['0,1'] = 1;
+    this.worldMapCells['0,2'] = 1;
+    this.worldMapCells['0,3'] = 1;*/
+
+    this.enterMap();
 
     this.engine.start();
   },
 
-  _generateMap: function() {
-    this.map = new Lemnos.Map();
-    //this.map._addEntranceAndExit();
+  _generateMap: function(newWorldXY) {
+    var lastMapWorldXY = this.worldXY.toString();
+
+    if (this.curMap) {
+      this.worldMapCells[lastMapWorldXY] = this.curMap;
+    }
+    this.curMap = new Lemnos.Map();
+    this.curMap.seenMapCells = [];
+    this.curMap.fovMapCells = [];
   },
 
-  enterRoom: function() {
+  enterMap: function(worldXY, dirXY) {
+
+    var targetWorldXY = worldXY || this.worldXY;
+
     window.clearSubscribers();
     if (this.engine) {
       this.engine.lock();
@@ -38,30 +52,53 @@ Lemnos.Game.prototype = {
     // increment depth
     //this.depth += 1;
 
-    // create new map
-    this._generateMap();
-
+    if (!this.worldMapCells[targetWorldXY.toString()]) {
+      // create new map
+      this._generateMap(targetWorldXY);
+    }
+    else {
+      //reload old map
+      this.curMap = this.worldMapCells[targetWorldXY.toString()];
+    }
 
     // place player
     if (!this.player) {
-      this.player = this.spawnAndPlaceBeing(Lemnos.Player, this.map.freeCells);
+      this.player = this.spawnAndPlaceBeing(Lemnos.Player, this.curMap.freeCells);
     } else {
         this.player.subscribeToMessages();
-        var index = Math.floor(ROT.RNG.getUniform() * this.map.freeCells.length);
-        var xy = new XY(this.map.freeCells.splice(index, 1)[0]);
+        var index = Math.floor(ROT.RNG.getUniform() * this.curMap.freeCells.length);
+        var xy = new XY(this.curMap.freeCells.splice(index, 1)[0]);
         this.player.relocate(xy);
         this.player.addToPlaceableList();
     }
 
-    this.player.relocate(this.map.entrance);
+    var wxy = new XY(Lemnos.DIR_W);
+    if(dirXY && dirXY.is(wxy)) {
+      this.player.relocate(this.curMap.exit);
+    }
+    else {
+      this.player.relocate(this.curMap.entrance);
+    }
+
+
     this._scheduler.add(this.player, true);
 
+
+    this.worldXY = targetWorldXY;
 
     // start it back up
     if (this.engine) {
         this.engine.start();
     }
   },
+
+/*  transitionMap: function() {
+    window.clearSubscribers();
+    if (this.engine) {
+      this.engine.lock();
+    }*/
+
+
 
   spawnAndPlaceBeing: function(being, freeCells) {
     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
@@ -71,26 +108,26 @@ Lemnos.Game.prototype = {
 
   drawVisibleMap: function() {
     Lemnos.display.clear();
-    for (var key in this.seenMapCells) {
+    for (var key in this.curMap.seenMapCells) {
       if (key == 'random' || key == 'randomize') continue;
         var parts = key.split(",");
         var x = parseInt(parts[0]);
         var y = parseInt(parts[1]);
         var fgcolor = "#fff";
-        var bgcolor = (this.seenMapCells[key] == '' ? Lemnos.settings.mapWallColorHidden : Lemnos.settings.mapFloorColorHidden);
-        Lemnos.display.draw(x, y, this.seenMapCells[key], fgcolor, bgcolor);
+        var bgcolor = (this.curMap.seenMapCells[key] == '' ? Lemnos.settings.mapWallColorHidden : Lemnos.settings.mapFloorColorHidden);
+        Lemnos.display.draw(x, y, this.curMap.seenMapCells[key], fgcolor, bgcolor);
     }
-    for (var key in this.fovMapCells) {
+    for (var key in this.curMap.fovMapCells) {
         var parts = key.split(",");
         var x = parseInt(parts[0]);
         var y = parseInt(parts[1]);
         var fgcolor = "#fff";
-        var bgcolor = (this.fovMapCells[key] == '' ? Lemnos.settings.mapWallColor : Lemnos.settings.mapFloorColors.random());
-        Lemnos.display.draw(x, y, this.fovMapCells[key], fgcolor, bgcolor);
+        var bgcolor = (this.curMap.fovMapCells[key] == '' ? Lemnos.settings.mapWallColor : Lemnos.settings.mapFloorColors.random());
+        Lemnos.display.draw(x, y, this.curMap.fovMapCells[key], fgcolor, bgcolor);
 
         // objects on it?
-        if (this.map.placeableCells[key]) {
-            var placeable = this.map.placeableCells[key][0]; // draw the first one on the list
+        if (this.curMap.placeableCells[key]) {
+            var placeable = this.curMap.placeableCells[key][0]; // draw the first one on the list
             placeable._draw();
         }
     }
@@ -100,7 +137,7 @@ Lemnos.Game.prototype = {
     Returns object that has property 'isOpen' (Boolean) and an optional 'bumpedEntity' */
     getMoveResult: function(placeable, xy) {
         var newKey = xy.toString();
-        var e_array = this.map.placeableCells[newKey];
+        var e_array = this.curMap.placeableCells[newKey];
         var ae = undefined;
         if (e_array && e_array.length > 0) {
             var len = e_array.length;
@@ -119,7 +156,7 @@ Lemnos.Game.prototype = {
             });
         }
 
-        if (!(newKey in this.map.cells)) {
+        if (!(newKey in this.curMap.cells)) {
             return ({
                 isOpen: false,
                 bumpedEntity: null

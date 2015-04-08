@@ -30,6 +30,6 @@ Lemnos.Placeable.prototype.relocate = function(txy) {
 };
 
 Lemnos.Placeable.prototype.addToPlaceableList = function() {
-  this._game.map.placeableList.push(this);
-  this.objectId = 'placeable_' + this._game.map.placeableCounter++;
+  this._game.curMap.placeableList.push(this);
+  this.objectId = 'placeable_' + this._game.curMap.placeableCounter++;
 };

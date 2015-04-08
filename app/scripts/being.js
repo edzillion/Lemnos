@@ -99,8 +99,8 @@ Lemnos.Being.prototype.scanFov = function() {
 
   var lightPasses = function(x, y) {
     var key = x+","+y;
-    if (key in Lemnos.curGame.map.cells) { // is part of the map
-      return (Lemnos.curGame.map.cells[key].length > 0);
+    if (key in Lemnos.curGame.curMap.cells) { // is part of the map
+      return (Lemnos.curGame.curMap.cells[key].length > 0);
     }
     return false;
   }
@@ -110,16 +110,16 @@ Lemnos.Being.prototype.scanFov = function() {
   fov.compute(this._xy.x, this._xy.y, this.fovRange, function(x, y, r, visibility) {
     if (x < 0 || y < 0 || x > 79 || y > 79) return;
     var key = x+","+y;
-    tbfov[key] = Lemnos.curGame.map.cells[key];
+    tbfov[key] = Lemnos.curGame.curMap.cells[key];
   });
 };
 
 Lemnos.Being.prototype.updatefovPlaceables = function() {
   this.fovPlaceables = [];
   // loop through map's pobjs, compare to fov map points
-  var len = this._game.map.placeableList.length;
+  var len = this._game.curMap.placeableList.length;
   for (var i = 0; i < len; i++) {
-    var pl = this._game.map.placeableList[i];
+    var pl = this._game.curMap.placeableList[i];
     var key = pl.getXY().toString();
     if(this.fovMapCells[key] && !this.fovPlaceables[key] && this != pl) {
       this.fovPlaceables.push(pl);
@@ -146,4 +146,15 @@ Lemnos.Being.prototype.doTurn = function() {
     this.pathTo = [xy[0],xy[1]];
     this.moveToward();
   }
-}
+};
+
+Lemnos.Being.prototype.exitMap = function(delta) {
+  if (this.definition.species == 'Player') {
+    var diffXY = (this._xy.is(this._game.curMap.entrance)) ? new XY(Lemnos.DIR_W) : new XY(Lemnos.DIR_E);
+    var toWorldXY = this._game.worldXY.plus(diffXY);
+    this._game.enterMap(toWorldXY, diffXY);
+  }
+  else {
+    //for monsters that can transition maps
+  }
+};

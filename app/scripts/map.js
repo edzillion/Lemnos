@@ -26,9 +26,13 @@ Lemnos.Map.prototype = {
       var exit = exitCorridors[i];
       if(!exit._endX) { //if x=0 then entrance
         this.entrance = new XY(exit._endX, exit._endY);
+        var key = this.entrance.toString();
+        this.cells[key] = "<";
       }
       else if (exit._endX == 79) { //TODO: harcoded / need to store map w and h
         this.exit = new XY(exit._endX, exit._endY);
+        var key = this.exit.toString();
+        this.cells[key] = ">";
       }
     }
   },
@@ -63,37 +67,37 @@ Lemnos.Map.prototype = {
   * getObjectsAtLoc
   * ... specifically excluding (optionally) certain obj
   */
-  getObjectsAtLoc: function(x,y,exclude_po) {
-    var pobjs = [];
-    var xy = x+","+y;
-    if (this.pobjCells && this.pobjCells[xy]) {
-      var len = this.pobjCells[xy].length;
+  getObjectsAtLoc: function(xy,exclude_po) {
+    var placeables = [];
+    var xyKey = xy.toString();
+    if (this.placeableCells && this.placeableCells[xyKey]) {
+      var len = this.placeableCells[xyKey].length;
       if (exclude_po) {
         for (var i = 0; i < len; i++) {
-          if (this.pobjCells[xy][i] != exclude_po) {
-                      pobjs.push(this.pobjCells[xy][i]); // TODO put Beings on top, or sort by 'zlayer' of some kind
-                    }
-                  }
-                } else {
-                  pobjs = this.pobjCells[xy];
-                }
-              }
-              return pobjs;
-            },
+          if (this.placeableCells[xyKey][i] != exclude_po) {
+            placeables.push(this.placeableCells[xyKey][i]); // TODO put Beings on top, or sort by 'zlayer' of some kind
+          }
+        }
+      } else {
+        placeables = this.placeableCells[xyKey];
+      }
+    }
+    return placeables;
+  },
 
-            getPath: function(fx,fy,tx,ty,topo,ignoreIsPassable) {
+  getPath: function(fx,fy,tx,ty,topo,ignoreIsPassable) {
       topo = (topo) ? topo : 8; // default to 8
 
       var passableCallback = function(x,y) {
         var xy_key = x+","+y;
-        var map = Lemnos.curGame.map;
+        var map = Lemnos.curGame.curMap;
           var canPass = (xy_key in map.cells); // is an actual map location
 
-          if (canPass == true && map.pobjCells && map.pobjCells[xy_key]) { // can pass over all objects in that space
-            for(var i in map.pobjCells[xy_key]) {
-              var testpobj = map.pobjCells[xy_key][i];
+          if (canPass == true && map.placeableCells && map.placeableCells[xy_key]) { // can pass over all objects in that space
+            for(var i in map.placeableCells[xy_key]) {
+              var testplaceable = map.placeableCells[xy_key][i];
               if (ignoreIsPassable != true) {
-                if (testpobj.isPassable == false && (xy_key != fx +","+fy)) {
+                if (testplaceable.isPassable == false && (xy_key != fx +","+fy)) {
                   canPass = false;
                   break;
                 }
@@ -126,8 +130,8 @@ Lemnos.Map.prototype = {
       this.fovMapCells = [];
       var lightPasses = function(x, y) {
         var key = x+","+y;
-          if (key in Lemnos.curGame.map.cells) { // is part of the map
-            return (Lemnos.curGame.map.cells[key].length > 0);
+          if (key in Lemnos.curGame.curMap.cells) { // is part of the map
+            return (Lemnos.curGame.curMap.cells[key].length > 0);
           }
           return false;
         }
@@ -135,7 +139,7 @@ Lemnos.Map.prototype = {
         var fov_cells = {};
         fov.compute(fxy[0], fxy[1], range, function(x, y, r, visibility) {
           var key = x+","+y;
-          fov_cells[key] = Lemnos.curGame.map.cells[key];
+          fov_cells[key] = Lemnos.curGame.curMap.cells[key];
           if (key == txy) {
             isInFov = true;
           }
@@ -148,11 +152,11 @@ Lemnos.Map.prototype = {
         for (var i = 0; i < len; i++) {
           var pxy = path[i][0] + "," + path[i][1];
           var glyph = ".";
-          if (this.pobjCells && this.pobjCells[pxy]) {
-            glyph = (this.pobjCells[pxy][0]._glyph || "*");
+          if (this.placeableCells && this.placeableCells[pxy]) {
+            glyph = (this.placeableCells[pxy][0]._glyph || "*");
           }
           Lemnos.display.draw(path[i][0], path[i][1], glyph, '#ff0', '#000');
         }
       }
     }
-}
+  }

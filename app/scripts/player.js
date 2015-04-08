@@ -43,7 +43,7 @@ Lemnos.Player.prototype.act = function() {
   }
 
   // get everything in order to draw the player's fov
-  this._game.map.updateObjectMap();
+  this._game.curMap.updateObjectMap();
   this.drawFov();
   this.updatefovPlaceables();
   this._draw();
@@ -70,7 +70,8 @@ Lemnos.Player.prototype.handleEvent = function(e) {
   var code = e.keyCode;
 
   if (code == 32) { // spacebar
-    this.doRest();
+    this.exitMap();
+    //this.doRest();
   } else {
     if (!(code in keyMap)) { return; }
 
@@ -108,8 +109,8 @@ Lemnos.Player.prototype.drawFov = function() {
       mc = '';
     }
     //mc = (mc ? ' ':'');
-    this._game.seenMapCells[i] = mc;
-    this._game.fovMapCells[i] = mc;
+    this._game.curMap.seenMapCells[i] = mc;
+    this._game.curMap.fovMapCells[i] = mc;
   }
   this._game.drawVisibleMap();
 };
@@ -143,17 +144,15 @@ Lemnos.Player.prototype.updateXpProgress = function() {
 
 Lemnos.Player.prototype.resolveColocation = function() {
   // check the space we're standing on for ispassable items we might want to pick up, or get trapped by, etc.
-  var x = this._x;
-  var y = this._y;
-  var colo_objs = this._game.map.getObjectsAtLoc(x,y,this);
+  var colo_objs = this._game.curMap.getObjectsAtLoc(this._xy,this);
   var len = colo_objs.length;
   for (var i = 0; i < len; i++) {
     var cobj = colo_objs[i];
     if (cobj.onPickup) {
       cobj.onPickup(this);
     }
-    if (cobj == this._game.map.exit) {
-      this._game.delveDeeper();
+    if (cobj == this._game.curMap.exit) {
+      this._game.enterMap();
     }
   }
 }

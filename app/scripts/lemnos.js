@@ -14,6 +14,10 @@ var Lemnos = Lemnos || {
     },
 
     //constants
+    DIR_N: ROT.DIRS[4][0],
+    DIR_E: ROT.DIRS[4][1],
+    DIR_S: ROT.DIRS[4][2],
+    DIR_W: ROT.DIRS[4][3],
 
     // vars
     game: null, // "Game" currently in progress
